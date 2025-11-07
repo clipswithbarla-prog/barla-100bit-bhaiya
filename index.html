@@ -95,10 +95,10 @@ let player = {
 };
 
 // Smooth physics (perfect flappy bird feel)
-let gravity = 0.15;   // controls falling speed (0.3–0.4 is best)
-let flap = -5;        // jump power (negative = upward)
+let gravity = 0.10;   // controls falling speed (0.3–0.4 is best)
+let flap = -6;        // jump power (negative = upward)
 let walls = [];
-let gap = 150;
+let gap = 300;
 let frame = 0;
 let score = 0;
 let gameRunning = false;
@@ -184,7 +184,7 @@ function drawWalls() {
 // ✅ update walls and collision
 function updateWalls() {
   walls.forEach((w, i) => {
-    w.x -= 2;
+    w.x -= 1.5;
     if (w.x + 60 < 0) walls.splice(i, 1);
 
     // collision
@@ -219,7 +219,7 @@ function update() {
   frame++;
   player.vy += gravity;
   player.y += player.vy;
-  if (frame % 100 === 0) createWall();
+  if (frame % 150 === 0) createWall();
   updateWalls();
 
   // out of bounds
@@ -289,4 +289,3 @@ loop();
 </script>
 </body>
 </html>
-
