@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flying Shobhit</title>
+<style>
+  html, body {
+    margin: 0;
+    overflow: hidden;
+    height: 100%;
+    background: #000;
+  }
+  canvas {
+    display: block;
+    margin: auto;
+    background: url("bg.jpg") center/cover no-repeat;
+  }
+  #overlay, #outScreen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    color: white;
+  }
+  #overlay button, #outScreen button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #outScreen {
+    background: rgba(0,0,0,0.7);
+    display: none;
+  }
+  #outScreen img {
+    width: 60%;
+    max-width: 250px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(255,255,255,0.4);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="400" height="600"></canvas>
+
+<!-- 👇 Developer Name -->
+  <p id="developer">Developed by Priyanshu Vidai 5.0</p>
+
+
+
+
+<div id="overlay">
+  <h1>vidai 5.0</h1>
+  <p>Press SPACE or CLICK to start</p>
+  <button id="startBtn">Start Game</button>
+</div>
+
+<div id="outScreen">
+  <img src="wall.png" alt="Out" />
+  <h2>OUT!</h2>
+  <button id="restartBtn">Restart</button>
+</div>
+
+<audio id="bgMusic" src="bg_music.mp3" loop></audio>
+<audio id="outAudio" src="out_audio.mp3"></audio>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+const overlay = document.getElementById("overlay");
+const outScreen = document.getElementById("outScreen");
+const bgMusic = document.getElementById("bgMusic");
+const outAudio = document.getElementById("outAudio");
+
+const playerImg = new Image();
+playerImg.src = "player.png";
+const wallImg = new Image();
+wallImg.src = "wall.png";
+
+ // Player setup and physics tuning
+let player = { 
+  x: 80, 
+  y: 300, 
+  w: 50, 
+  h: 50, 
+  vy: 0 
+};
+
+// Smooth physics (perfect flappy bird feel)
+let gravity = 0.15;   // controls falling speed (0.3–0.4 is best)
+let flap = -5;        // jump power (negative = upward)
+let walls = [];
+let gap = 150;
+let frame = 0;
+let score = 0;
+let gameRunning = false;
+let gameOver = false;
+
+// Handle flap (space or click)
+document.addEventListener("keydown", (e) => {
+  if (e.code === "Space" && gameRunning && !gameOver) {
+    player.vy = flap;
+  } else if (e.code === "Space" && !gameRunning) {
+    startGame();
+  }
+});
+
+document.addEventListener("mousedown", () => {
+  if (gameRunning && !gameOver) {
+    player.vy = flap;
+  } else if (!gameRunning) {
+    startGame();
+  }
+});
+
+// Update player movement
+function updatePlayer() {
+  player.vy += gravity;   // gravity pull
+  player.y += player.vy;  // position update
+
+  // Prevent going out of top or bottom
+  if (player.y + player.h > canvas.height) {
+    player.y = canvas.height - player.h;
+    gameOver = true;
+    endGame();
+  }
+  if (player.y < 0) {
+    player.y = 0;
+    player.vy = 0;
+  }
+}
+
+// Draw player
+function drawPlayer() {
+  ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+}
+
+// Game loop
+function loop() {
+  if (!gameRunning) return;
+
+  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+  updatePlayer();
+  drawPlayer();
+  updateWalls();
+  drawWalls();
+  drawScore();
+
+  if (!gameOver) {
+    frame++;
+    requestAnimationFrame(loop);
+  }
+}
+
+
+// ✅ create wall
+function createWall() {
+  const holeY = Math.floor(Math.random() * 300) + 100;
+  walls.push({ x: canvas.width, holeY, passed: false });
+}
+
+// ✅ draw player
+function drawPlayer() {
+  ctx.drawImage(playerImg, player.x, player.y, player.w, player.h);
+}
+
+// ✅ draw walls
+function drawWalls() {
+  walls.forEach(w => {
+    ctx.drawImage(wallImg, w.x, 0, 60, w.holeY);
+    ctx.drawImage(wallImg, w.x, w.holeY + gap, 60, canvas.height - (w.holeY + gap));
+  });
+}
+
+// ✅ update walls and collision
+function updateWalls() {
+  walls.forEach((w, i) => {
+    w.x -= 2;
+    if (w.x + 60 < 0) walls.splice(i, 1);
+
+    // collision
+    if (
+      player.x + player.w > w.x &&
+      player.x < w.x + 60 &&
+      (player.y < w.holeY || player.y + player.h > w.holeY + gap)
+    ) {
+      endGame();
+    }
+
+    if (!w.passed && w.x + 60 < player.x) {
+      w.passed = true;
+      score++;
+    }
+  });
+}
+
+// ✅ end game
+function endGame() {
+  gameRunning = false;
+  gameOver = true;
+  bgMusic.pause();
+  outAudio.currentTime = 0;
+  outAudio.play();
+  outScreen.style.display = "flex";
+}
+
+// ✅ update
+function update() {
+  if (!gameRunning) return;
+  frame++;
+  player.vy += gravity;
+  player.y += player.vy;
+  if (frame % 100 === 0) createWall();
+  updateWalls();
+
+  // out of bounds
+  if (player.y + player.h > canvas.height || player.y < 0) {
+    endGame();
+  }
+}
+
+// ✅ draw
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawWalls();
+  drawPlayer();
+  ctx.fillStyle = "white";
+  ctx.font = "24px sans-serif";
+  ctx.fillText("Score: " + score, 10, 30);
+}
+
+// ✅ main loop
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ✅ start game
+function startGame() {
+  overlay.style.display = "none";
+  outScreen.style.display = "none";
+  player = { x: 80, y: 300, w: 50, h: 50, vy: 0 };
+  walls = [];
+  score = 0;
+  frame = 0;
+  gameRunning = true;
+  gameOver = false;
+  bgMusic.currentTime = 0;
+  bgMusic.play();
+}
+
+// ✅ flap
+function flapBird() {
+  if (!gameRunning) return;
+  player.vy = flap;
+}
+
+// ✅ restart
+function restartGame() {
+  startGame();
+}
+
+// 🎮 controls
+document.getElementById("startBtn").onclick = startGame;
+document.getElementById("restartBtn").onclick = restartGame;
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    if (!gameRunning && !gameOver) startGame();
+    else flapBird();
+  }
+});
+canvas.addEventListener("click", () => {
+  if (!gameRunning && !gameOver) startGame();
+  else flapBird();
+});
+
+// ✅ game loop start
+loop();
+</script>
+</body>
+</html>
